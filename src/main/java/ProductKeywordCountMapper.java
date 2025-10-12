@@ -5,6 +5,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
+// 词频统计的 Mapper，使用 \u0001 进行分割，输出 <单词, 1>
 // WordCountMapper 类继承自 Hadoop 的 Mapper 类
 // 泛型参数说明：输入键类型为 LongWritable（行偏移量）+ 输入值类型为 Text（一行文本）；输出键类型为 Text（单词），输出值类型为 IntWritable（单词出现次数）
 public class ProductKeywordCountMapper extends Mapper<LongWritable, Text, Text, IntWritable> {

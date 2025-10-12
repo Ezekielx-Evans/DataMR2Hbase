@@ -1,6 +1,7 @@
 import java.io.*;
 import java.util.*;
 
+// 根据词频排序类
 public class SortByValue {
 
     private List<Map.Entry<String, Integer>> sortedList; // 保存排序后的结果

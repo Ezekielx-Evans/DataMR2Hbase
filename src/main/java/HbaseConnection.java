@@ -5,7 +5,8 @@ import java.util.Properties;
 
 public class HbaseConnection {
 
-    public void StoreKeywordValueCount(String filePath) {
+    // 将词频排序结果储存起来
+    public void StoreKeywordCount(String filePath) {
 
         // JDBC URL
         String url = "jdbc:phoenix:node1:2181";
@@ -66,9 +67,6 @@ public class HbaseConnection {
                 pstmt.executeUpdate();
                 count++;
             }
-
-
-            // =============== 录入 ===================
 
             // 6. 提交事务（Phoenix 默认 autoCommit=false）
             connection.commit();

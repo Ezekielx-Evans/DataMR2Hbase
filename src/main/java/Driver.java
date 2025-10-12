@@ -10,20 +10,22 @@ import java.io.File;
 
 public class Driver {
     public static void main(String[] args) throws Exception {
+
+        //================================= Product Keyword Count =============================================
+        // 词频统计，需要输入 <input path> <output path>
         if (args.length != 2) {
             System.err.println("ERROR: ProductKeywordCountDriver <input path> <output path>");
             System.exit(-1);
         }
         HbaseConnection hbaseConnection = new HbaseConnection();
 
-        //================================= Product Keyword Count =============================================
         Configuration conf1 = new Configuration();
         Job job1 = Job.getInstance(conf1, "Product Keyword Count");
 
         // 设置主类，用于打包 JAR 时指定入口点
         job1.setJarByClass(Driver.class);
 
-        // 设置 Mapper、Reducer、Combiner
+        // 设置 Mapper、Reducer
         job1.setMapperClass(ProductKeywordCountMapper.class);
         job1.setReducerClass(ProductKeywordCountReducer.class);
 
@@ -38,19 +40,17 @@ public class Driver {
         // 提交任务并等待完成
         boolean completed1 = job1.waitForCompletion(true);
 
+        // 输出结果路径
         String partFile = new File(args[1], "part-r-00000").getPath();
-        hbaseConnection.StoreKeywordValueCount(partFile);
+        // 将结果储存起来
+        hbaseConnection.StoreKeywordCount(partFile);
 
-        // 打印结果
+        // 打印执行结果
         if (completed1) {
             System.out.println("商品关键字统计成功成功！");
         } else {
             System.out.println("商品关键字统计成功失败！");
         }
-
-        //================================= Product Keyword Count =============================================
-
-
 
         //==================================== ActionStatistics ===============================================
 
