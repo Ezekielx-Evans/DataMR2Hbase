@@ -5,6 +5,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
+// 行为记录的 Mapper，使用 \u0001 进行分割，输出 <行为, 1>
 // WordCountMapper 类继承自 Hadoop 的 Mapper 类
 // 泛型参数说明：输入键类型为 LongWritable（行偏移量）+ 输入值类型为 Text（一行文本）；输出键类型为 Text（单词），输出值类型为 IntWritable（单词出现次数）
 public class ActionStatisticsMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
@@ -21,25 +22,21 @@ public class ActionStatisticsMapper extends Mapper<LongWritable, Text, Text, Int
         // 按特殊分隔符 \u0001 切分
         String[] fields = line.split("\u0001");
 
-        System.out.println("action=" + fields[1]);
+        // 打印该行用户的 action
+        System.out.println("action=" + fields[2]);
 
-        // 确保有 2 列
-        if (fields.length > 1) {
+        // 确保有 3 列
+        if (fields.length > 2) {
 
-            String title = fields[1];
+            String action = fields[2];
 
-            // 按空格分词（多个空格也能处理），"\\s+"为正则表达式
-            String[] words = title.split("\\s+");
-
-            // 遍历每个单词
-            for (String word : words) {
-                // 忽略空字符串（例如多个连续空格可能造成空单词）
-                if (!word.isEmpty()) {
-                    // 输出 <单词, 1>，表示该单词出现一次
-                    wordText.set(word);
-                    context.write(wordText, one);
-                }
+            // 忽略空字符串
+            if (!action.isEmpty()) {
+                // 输出 <单词, 1>，表示该单词出现一次
+                wordText.set(action);
+                context.write(wordText, one);
             }
+
 
         }
     }

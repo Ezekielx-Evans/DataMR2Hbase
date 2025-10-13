@@ -11,50 +11,99 @@ import java.io.File;
 public class Driver {
     public static void main(String[] args) throws Exception {
 
-        //================================= Product Keyword Count =============================================
-        // 词频统计，需要输入 <input path> <output path>
-        if (args.length != 2) {
-            System.err.println("ERROR: ProductKeywordCountDriver <input path> <output path>");
+        //================================= 参数检查 =============================================
+        // 现在要求输入 <JobType> <input path> <output path>
+        if (args.length != 3) {
+            System.err.println("Usage: Driver <JobType: ProductKeywordCount|ActionStatistics> <input path> <output path>");
             System.exit(-1);
         }
+
+        // 读取参数
+        String jobType = args[0];   // Job 类型
+        String inputPath = args[1]; // 输入路径
+        String outputPath = args[2]; // 输出路径
+
         HbaseConnection hbaseConnection = new HbaseConnection();
 
-        Configuration conf1 = new Configuration();
-        Job job1 = Job.getInstance(conf1, "Product Keyword Count");
 
-        // 设置主类，用于打包 JAR 时指定入口点
-        job1.setJarByClass(Driver.class);
+        //================================= Product Keyword Count =============================================
+        if ("ProductKeywordCount".equalsIgnoreCase(jobType)) {
+            // 词频统计，需要输入 <input path> <output path>
+            Configuration conf1 = new Configuration();
+            Job job1 = Job.getInstance(conf1, "Product Keyword Count");
 
-        // 设置 Mapper、Reducer
-        job1.setMapperClass(ProductKeywordCountMapper.class);
-        job1.setReducerClass(ProductKeywordCountReducer.class);
+            // 设置主类，用于打包 JAR 时指定入口点
+            job1.setJarByClass(Driver.class);
 
-        // 设置输出 key/value 类型
-        job1.setOutputKeyClass(Text.class);
-        job1.setOutputValueClass(IntWritable.class);
+            // 设置 Mapper、Reducer
+            job1.setMapperClass(ProductKeywordCountMapper.class);
+            job1.setReducerClass(ProductKeywordCountReducer.class);
 
-        // 输入输出路径
-        FileInputFormat.addInputPath(job1, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job1, new Path(args[1]));
+            // 设置输出 key/value 类型
+            job1.setOutputKeyClass(Text.class);
+            job1.setOutputValueClass(IntWritable.class);
 
-        // 提交任务并等待完成
-        boolean completed1 = job1.waitForCompletion(true);
+            // 输入输出路径
+            FileInputFormat.addInputPath(job1, new Path(inputPath));
+            FileOutputFormat.setOutputPath(job1, new Path(outputPath));
 
-        // 输出结果路径
-        String partFile = new File(args[1], "part-r-00000").getPath();
-        // 将结果储存起来
-        hbaseConnection.StoreKeywordCount(partFile);
+            // 提交任务并等待完成
+            boolean completed1 = job1.waitForCompletion(true);
 
-        // 打印执行结果
-        if (completed1) {
-            System.out.println("商品关键字统计成功成功！");
-        } else {
-            System.out.println("商品关键字统计成功失败！");
+            // 输出结果路径
+            String partFile = new File(outputPath, "part-r-00000").getPath();
+            // 将结果储存起来
+            hbaseConnection.StoreKeywordCount(partFile);
+
+            // 打印执行结果
+            if (completed1) {
+                System.out.println("商品关键字统计成功！");
+            } else {
+                System.out.println("商品关键字统计失败！");
+            }
         }
 
         //==================================== ActionStatistics ===============================================
+        else if ("ActionStatistics".equalsIgnoreCase(jobType)) {
+            // 用户行为统计，需要输入 <input path> <output path>
+            Configuration conf2 = new Configuration();
+            Job job2 = Job.getInstance(conf2, "Action Statistics");
+
+            job2.setJarByClass(Driver.class);
+
+            // 设置 Mapper、Reducer
+            job2.setMapperClass(ActionStatisticsMapper.class);
+            job2.setReducerClass(ActionStatisticsReducer.class);
+
+            // 设置输出 key/value 类型
+            job2.setOutputKeyClass(Text.class);
+            job2.setOutputValueClass(IntWritable.class);
+
+            // 输入输出路径
+            FileInputFormat.addInputPath(job2, new Path(inputPath));
+            FileOutputFormat.setOutputPath(job2, new Path(outputPath));
+
+            // 提交任务并等待完成
+            boolean completed2 = job2.waitForCompletion(true);
+
+            // 输出结果路径
+            String partFile2 = new File(outputPath, "part-r-00000").getPath();
+            hbaseConnection.StoreActionStatistics(partFile2);
+
+            // 打印执行结果
+            if (completed2) {
+                System.out.println("用户行为统计成功！");
+            } else {
+                System.out.println("用户行为统计失败！");
+            }
+        }
 
 
+        //==================================== 错误处理 ===============================================
+        else {
+            System.err.println("Unknown JobType: " + jobType);
+            System.exit(-1);
+        }
 
     }
 }

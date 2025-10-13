@@ -40,7 +40,7 @@ public class HbaseConnection {
 
             // =============== 录入 ===================
 
-            int limit = 1000;
+            int limit = 100;
             int count = 0;
 
             for (Map.Entry<String, Integer> entry : sortedList) {
@@ -73,9 +73,74 @@ public class HbaseConnection {
 
             // 7. 查询验证
             ResultSet rs = stmt.executeQuery("SELECT * FROM ProductKeySortedCount ORDER BY Count DESC, Product ASC");
-            System.out.println("=== Phoenix Table Data ===");
+            System.out.println("=== 商品关键字统计数据 ===");
             while (rs.next()) {
                 System.out.println(rs.getString("Product") + "\t" + rs.getInt("Count"));
+            }
+            rs.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try { if (pstmt != null) pstmt.close(); } catch (Exception ignored) {}
+            try { if (stmt != null) stmt.close(); } catch (Exception ignored) {}
+            try { if (connection != null) connection.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    // 将行为记录储存起来
+    public void StoreActionStatistics(String filePath) {
+
+        // JDBC URL
+        String url = "jdbc:phoenix:node1:2181";
+
+        Connection connection = null;
+        PreparedStatement pstmt = null;
+        Statement stmt = null;
+
+        try {
+            // 1. 建立连接
+            Properties properties = new Properties();
+            connection = DriverManager.getConnection(url, properties);
+            stmt = connection.createStatement();
+
+            // 2. 创建表（如果不存在）
+            String createSQL = "CREATE TABLE IF NOT EXISTS ActionStatistics (" +
+                    "Product VARCHAR PRIMARY KEY, " +
+                    "Count INTEGER)";
+            stmt.executeUpdate(createSQL);
+
+            // 3. 清空表数据（避免重复插入）
+            stmt.executeUpdate("DELETE FROM ActionStatistics");
+
+            // 4. 使用 SortByValue 读取并排序
+            SortByValue sorter = new SortByValue(filePath);
+            List<Map.Entry<String, Integer>> sortedList = sorter.getSortedList();
+
+            // 5. 插入排序后的结果
+            String upsertSQL = "UPSERT INTO ActionStatistics (Action, Count) VALUES (?, ?)";
+            pstmt = connection.prepareStatement(upsertSQL);
+
+            // =============== 录入 ===================
+
+            for (Map.Entry<String, Integer> entry : sortedList) {
+
+                String action = entry.getKey();
+
+                // 通过条件才入库
+                pstmt.setString(1, action);
+                pstmt.setInt(2, entry.getValue());
+                pstmt.executeUpdate();
+            }
+
+            // 6. 提交事务（Phoenix 默认 autoCommit=false）
+            connection.commit();
+
+            // 7. 查询验证
+            ResultSet rs = stmt.executeQuery("SELECT * FROM ActionStatistics ORDER BY Count DESC, Action ASC");
+            System.out.println("=== 行为统计数据 ===");
+            while (rs.next()) {
+                System.out.println(rs.getString("Action") + "\t" + rs.getInt("Count"));
             }
             rs.close();
 
