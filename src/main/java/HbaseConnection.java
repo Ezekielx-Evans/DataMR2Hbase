@@ -218,7 +218,7 @@ public class HbaseConnection {
             connection.commit();
 
             // 7. 查询验证
-            ResultSet rs = stmt.executeQuery("SELECT * FROM UserDailyActivity ORDER BY Count DESC, Hour ASC");
+            ResultSet rs = stmt.executeQuery("SELECT * FROM UserDailyActivity ORDER BY Hour ASC, Count DESC");
 
             System.out.println("=== 用户日活跃度柱状图 ===");
 
