@@ -158,10 +158,10 @@ public class Driver {
         System.out.println("    <输出路径>   HDFS 输出结果的路径");
         System.out.println();
         System.out.println("示例:");
-        System.out.println("    hadoop jar analysis.jar ProductKeywordCount /input/products /output/keywords");
-        System.out.println("    hadoop jar analysis.jar ActionStatistics /input/actions /output/action_stats");
-        System.out.println("    hadoop jar analysis.jar UserDailyActivity /input/logs /output/dau");
-        System.out.println("    hadoop jar analysis.jar ItemConversion /input/items /output/conversions");
+        System.out.println("    hadoop jar analysis.jar ProductKeywordCount /input/products /output/ProductKeywordCount");
+        System.out.println("    hadoop jar analysis.jar ActionStatistics /input/logs /output/ActionStatistics");
+        System.out.println("    hadoop jar analysis.jar UserDailyActivity /input/logs /output/UserDailyActivity");
+        System.out.println("    hadoop jar analysis.jar ItemConversion /input/logs /output/ItemConversion");
         System.out.println("=====================================================================================");
     }
 }
