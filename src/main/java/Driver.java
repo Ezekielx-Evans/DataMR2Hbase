@@ -12,50 +12,38 @@ public class Driver {
     public static void main(String[] args) throws Exception {
 
         //================================= 参数检查 =============================================
-        // 现在要求输入 <JobType> <input path> <output path>
-        if (args.length != 3) {
-            System.err.println("Usage: Driver <JobType: ProductKeywordCount|ActionStatistics|UserDailyActivity|ItemConversion> <input path> <output path>");
+        // 要求输入 <JobType> <input path> <output path>
+        if (args.length != 3 || "-h".equalsIgnoreCase(args[0]) || "--help".equalsIgnoreCase(args[0])) {
+            printHelp();
             System.exit(-1);
         }
 
         // 读取参数
-        String jobType = args[0];   // Job 类型
-        String inputPath = args[1]; // 输入路径
+        String jobType = args[0];    // Job 类型
+        String inputPath = args[1];  // 输入路径
         String outputPath = args[2]; // 输出路径
 
         HbaseConnection hbaseConnection = new HbaseConnection();
 
-
         //================================= Product Keyword Count =============================================
         if ("ProductKeywordCount".equalsIgnoreCase(jobType)) {
-            // 词频统计，需要输入 <input path> <output path>
             Configuration conf1 = new Configuration();
             Job job1 = Job.getInstance(conf1, "Product Keyword Count");
 
-            // 设置主类，用于打包 JAR 时指定入口点
             job1.setJarByClass(Driver.class);
-
-            // 设置 Mapper、Reducer
             job1.setMapperClass(ProductKeywordCountMR.ProductKeywordCountMapper.class);
             job1.setReducerClass(ProductKeywordCountMR.ProductKeywordCountReducer.class);
 
-            // 设置输出 key/value 类型
             job1.setOutputKeyClass(Text.class);
             job1.setOutputValueClass(IntWritable.class);
 
-            // 输入输出路径
             FileInputFormat.addInputPath(job1, new Path(inputPath));
             FileOutputFormat.setOutputPath(job1, new Path(outputPath));
 
-            // 提交任务并等待完成
             boolean completed1 = job1.waitForCompletion(true);
-
-            // 输出结果路径
             String partFile = new File(outputPath, "part-r-00000").getPath();
-            // 将结果储存起来
             hbaseConnection.StoreKeywordCount(partFile);
 
-            // 打印执行结果
             if (completed1) {
                 System.out.println("商品关键字统计成功！");
             } else {
@@ -65,32 +53,23 @@ public class Driver {
 
         //==================================== ActionStatistics ===============================================
         else if ("ActionStatistics".equalsIgnoreCase(jobType)) {
-            // 用户行为统计，需要输入 <input path> <output path>
             Configuration conf2 = new Configuration();
             Job job2 = Job.getInstance(conf2, "Action Statistics");
 
             job2.setJarByClass(Driver.class);
-
-            // 设置 Mapper、Reducer
             job2.setMapperClass(ActionStatisticsMR.ActionStatisticsMapper.class);
             job2.setReducerClass(ActionStatisticsMR.ActionStatisticsReducer.class);
 
-            // 设置输出 key/value 类型
             job2.setOutputKeyClass(Text.class);
             job2.setOutputValueClass(IntWritable.class);
 
-            // 输入输出路径
             FileInputFormat.addInputPath(job2, new Path(inputPath));
             FileOutputFormat.setOutputPath(job2, new Path(outputPath));
 
-            // 提交任务并等待完成
             boolean completed2 = job2.waitForCompletion(true);
-
-            // 输出结果路径
             String partFile2 = new File(outputPath, "part-r-00000").getPath();
             hbaseConnection.StoreActionStatistics(partFile2);
 
-            // 打印执行结果
             if (completed2) {
                 System.out.println("用户行为统计成功！");
             } else {
@@ -100,32 +79,23 @@ public class Driver {
 
         //==================================== UserDailyActivity ===============================================
         else if ("UserDailyActivity".equalsIgnoreCase(jobType)) {
-            // 用户日活统计，需要输入 <input path> <output path>
             Configuration conf3 = new Configuration();
             Job job3 = Job.getInstance(conf3, "User Daily Activity");
 
             job3.setJarByClass(Driver.class);
-
-            // 设置 Mapper、Reducer
             job3.setMapperClass(UserDailyActivityMR.UserDailyActivityMapper.class);
             job3.setReducerClass(UserDailyActivityMR.UserDailyActivityReducer.class);
 
-            // 设置输出 key/value 类型
             job3.setOutputKeyClass(Text.class);
             job3.setOutputValueClass(IntWritable.class);
 
-            // 输入输出路径
             FileInputFormat.addInputPath(job3, new Path(inputPath));
             FileOutputFormat.setOutputPath(job3, new Path(outputPath));
 
-            // 提交任务并等待完成
             boolean completed3 = job3.waitForCompletion(true);
-
-            // 输出结果路径
             String partFile3 = new File(outputPath, "part-r-00000").getPath();
             hbaseConnection.StoreUserDailyActivity(partFile3);
 
-            // 打印执行结果
             if (completed3) {
                 System.out.println("用户日活统计成功！");
             } else {
@@ -135,36 +105,26 @@ public class Driver {
 
         //==================================== ItemConversion ===============================================
         else if ("ItemConversion".equalsIgnoreCase(jobType)) {
-            // 商品转化率统计，需要输入 <input path> <output path>
             Configuration conf4 = new Configuration();
             Job job4 = Job.getInstance(conf4, "Item Conversion Statistics");
 
             job4.setJarByClass(Driver.class);
-
-            // 设置 Mapper、Reducer
             job4.setMapperClass(ItemConversionMR.ItemConversionMapper.class);
             job4.setReducerClass(ItemConversionMR.ItemConversionReducer.class);
 
-            // 设置 Map 输出 key/value 类型
             job4.setMapOutputKeyClass(Text.class);
             job4.setMapOutputValueClass(Text.class);
 
-            // 设置输出 key/value 类型
             job4.setOutputKeyClass(Text.class);
             job4.setOutputValueClass(Text.class);
 
-            // 输入输出路径
             FileInputFormat.addInputPath(job4, new Path(inputPath));
             FileOutputFormat.setOutputPath(job4, new Path(outputPath));
 
-            // 提交任务并等待完成
             boolean completed4 = job4.waitForCompletion(true);
-
-            // 输出结果路径
             String partFile4 = new File(outputPath, "part-r-00000").getPath();
             hbaseConnection.StoreItemConversion(partFile4);
 
-            // 打印执行结果
             if (completed4) {
                 System.out.println("商品转化率统计成功！");
             } else {
@@ -174,9 +134,34 @@ public class Driver {
 
         //==================================== 错误处理 ===============================================
         else {
-            System.err.println("Unknown JobType: " + jobType);
+            System.err.println("未知的作业类型: " + jobType);
+            printHelp();
             System.exit(-1);
         }
 
+    }
+
+    // 中文帮助方法
+    private static void printHelp() {
+        System.out.println("================================= Hadoop 作业运行帮助 =================================");
+        System.out.println("用法:");
+        System.out.println("    hadoop jar your-jar-file.jar Driver <作业类型> <输入路径> <输出路径>");
+        System.out.println();
+        System.out.println("参数说明:");
+        System.out.println("    <作业类型> 可选值如下：");
+        System.out.println("       ProductKeywordCount   - 商品关键字统计");
+        System.out.println("       ActionStatistics      - 用户行为统计");
+        System.out.println("       UserDailyActivity     - 用户日活统计");
+        System.out.println("       ItemConversion        - 商品转化率统计");
+        System.out.println();
+        System.out.println("    <输入路径>   HDFS 输入数据的路径");
+        System.out.println("    <输出路径>   HDFS 输出结果的路径");
+        System.out.println();
+        System.out.println("示例:");
+        System.out.println("    hadoop jar analysis.jar ProductKeywordCount /input/products /output/keywords");
+        System.out.println("    hadoop jar analysis.jar ActionStatistics /input/actions /output/action_stats");
+        System.out.println("    hadoop jar analysis.jar UserDailyActivity /input/logs /output/dau");
+        System.out.println("    hadoop jar analysis.jar ItemConversion /input/items /output/conversions");
+        System.out.println("=====================================================================================");
     }
 }
