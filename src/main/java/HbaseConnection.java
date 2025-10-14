@@ -31,7 +31,7 @@ public class HbaseConnection {
             stmt.executeUpdate("DELETE FROM ProductKeySortedCount");
 
             // 4. 使用 SortByValue 读取并排序
-            SortByValue sorter = new SortByValue(filePath);
+            ActionStatistics_SortByValue sorter = new ActionStatistics_SortByValue(filePath);
             List<Map.Entry<String, Integer>> sortedList = sorter.getSortedList();
 
             // 5. 插入排序后的结果
@@ -106,7 +106,7 @@ public class HbaseConnection {
 
             // 2. 创建表（如果不存在）
             String createSQL = "CREATE TABLE IF NOT EXISTS ActionStatistics (" +
-                    "Product VARCHAR PRIMARY KEY, " +
+                    "Action VARCHAR PRIMARY KEY, " +
                     "Count INTEGER)";
             stmt.executeUpdate(createSQL);
 
@@ -114,7 +114,7 @@ public class HbaseConnection {
             stmt.executeUpdate("DELETE FROM ActionStatistics");
 
             // 4. 使用 SortByValue 读取并排序
-            SortByValue sorter = new SortByValue(filePath);
+            ActionStatistics_SortByValue sorter = new ActionStatistics_SortByValue(filePath);
             List<Map.Entry<String, Integer>> sortedList = sorter.getSortedList();
 
             // 5. 插入排序后的结果

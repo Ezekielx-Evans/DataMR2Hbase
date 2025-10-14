@@ -2,12 +2,12 @@ import java.io.*;
 import java.util.*;
 
 // 根据词频排序类
-public class SortByValue {
+public class ActionStatistics_SortByValue {
 
     private List<Map.Entry<String, Integer>> sortedList; // 保存排序后的结果
 
     // 构造方法：传入文件路径，自动读取并排序
-    public SortByValue(String filePath) {
+    public ActionStatistics_SortByValue(String filePath) {
 
 
         sortedList = new ArrayList<>();

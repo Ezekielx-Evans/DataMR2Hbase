@@ -36,8 +36,8 @@ public class Driver {
             job1.setJarByClass(Driver.class);
 
             // 设置 Mapper、Reducer
-            job1.setMapperClass(ProductKeywordCountMapper.class);
-            job1.setReducerClass(ProductKeywordCountReducer.class);
+            job1.setMapperClass(ProductKeywordCountMR.ProductKeywordCountMapper.class);
+            job1.setReducerClass(ProductKeywordCountMR.ProductKeywordCountReducer.class);
 
             // 设置输出 key/value 类型
             job1.setOutputKeyClass(Text.class);
@@ -72,8 +72,8 @@ public class Driver {
             job2.setJarByClass(Driver.class);
 
             // 设置 Mapper、Reducer
-            job2.setMapperClass(ActionStatisticsMapper.class);
-            job2.setReducerClass(ActionStatisticsReducer.class);
+            job2.setMapperClass(ActionStatisticsMR.ActionStatisticsMapper.class);
+            job2.setReducerClass(ActionStatisticsMR.ActionStatisticsReducer.class);
 
             // 设置输出 key/value 类型
             job2.setOutputKeyClass(Text.class);
