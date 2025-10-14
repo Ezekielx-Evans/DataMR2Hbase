@@ -60,7 +60,7 @@ public class HbaseConnection {
             }
             connection.commit();
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM ProductKeySortedCount ORDER BY Count DESC LIMIT 10");
+            ResultSet rs = stmt.executeQuery("SELECT * FROM ProductKeySortedCount ORDER BY Count DESC LIMIT 50");
             System.out.println("=== 商品关键字统计数据 ===");
             while (rs.next()) {
                 System.out.println(rs.getString("Product") + "\t" + rs.getInt("Count"));
