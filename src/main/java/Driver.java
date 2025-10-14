@@ -6,22 +6,18 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import java.io.File;
-
 public class Driver {
     public static void main(String[] args) throws Exception {
 
         //================================= 参数检查 =============================================
-        // 要求输入 <JobType> <input path> <output path>
         if (args.length != 3 || "-h".equalsIgnoreCase(args[0]) || "--help".equalsIgnoreCase(args[0])) {
             printHelp();
             System.exit(-1);
         }
 
-        // 读取参数
         String jobType = args[0];    // Job 类型
-        String inputPath = args[1];  // 输入路径
-        String outputPath = args[2]; // 输出路径
+        String inputPath = args[1];  // 输入路径 (HDFS)
+        String outputPath = args[2]; // 输出路径 (HDFS)
 
         HbaseConnection hbaseConnection = new HbaseConnection();
 
@@ -41,8 +37,8 @@ public class Driver {
             FileOutputFormat.setOutputPath(job1, new Path(outputPath));
 
             boolean completed1 = job1.waitForCompletion(true);
-            String partFile = new File(outputPath, "part-r-00000").getPath();
-            hbaseConnection.StoreKeywordCount(partFile);
+            String partFile = outputPath + "/part-r-00000";
+            hbaseConnection.StoreKeywordCount(conf1, partFile);
 
             if (completed1) {
                 System.out.println("商品关键字统计成功！");
@@ -67,8 +63,8 @@ public class Driver {
             FileOutputFormat.setOutputPath(job2, new Path(outputPath));
 
             boolean completed2 = job2.waitForCompletion(true);
-            String partFile2 = new File(outputPath, "part-r-00000").getPath();
-            hbaseConnection.StoreActionStatistics(partFile2);
+            String partFile2 = outputPath + "/part-r-00000";
+            hbaseConnection.StoreActionStatistics(conf2, partFile2);
 
             if (completed2) {
                 System.out.println("用户行为统计成功！");
@@ -93,8 +89,8 @@ public class Driver {
             FileOutputFormat.setOutputPath(job3, new Path(outputPath));
 
             boolean completed3 = job3.waitForCompletion(true);
-            String partFile3 = new File(outputPath, "part-r-00000").getPath();
-            hbaseConnection.StoreUserDailyActivity(partFile3);
+            String partFile3 = outputPath + "/part-r-00000";
+            hbaseConnection.StoreUserDailyActivity(conf3, partFile3);
 
             if (completed3) {
                 System.out.println("用户日活统计成功！");
@@ -122,8 +118,8 @@ public class Driver {
             FileOutputFormat.setOutputPath(job4, new Path(outputPath));
 
             boolean completed4 = job4.waitForCompletion(true);
-            String partFile4 = new File(outputPath, "part-r-00000").getPath();
-            hbaseConnection.StoreItemConversion(partFile4);
+            String partFile4 = outputPath + "/part-r-00000";
+            hbaseConnection.StoreItemConversion(conf4, partFile4);
 
             if (completed4) {
                 System.out.println("商品转化率统计成功！");
@@ -132,16 +128,13 @@ public class Driver {
             }
         }
 
-        //==================================== 错误处理 ===============================================
         else {
             System.err.println("未知的作业类型: " + jobType);
             printHelp();
             System.exit(-1);
         }
-
     }
 
-    // 中文帮助方法
     private static void printHelp() {
         System.out.println("================================= Hadoop 作业运行帮助 =================================");
         System.out.println("用法:");
@@ -158,10 +151,7 @@ public class Driver {
         System.out.println("    <输出路径>   HDFS 输出结果的路径");
         System.out.println();
         System.out.println("示例:");
-        System.out.println("    hadoop jar analysis.jar ProductKeywordCount /input/products /output/ProductKeywordCount");
-        System.out.println("    hadoop jar analysis.jar ActionStatistics /input/logs /output/ActionStatistics");
-        System.out.println("    hadoop jar analysis.jar UserDailyActivity /input/logs /output/UserDailyActivity");
-        System.out.println("    hadoop jar analysis.jar ItemConversion /input/logs /output/ItemConversion");
+        System.out.println("    hadoop jar analysis.jar Driver ProductKeywordCount /input/products /output/ProductKeywordCount");
         System.out.println("=====================================================================================");
     }
 }
