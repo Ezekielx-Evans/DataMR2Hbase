@@ -1,3 +1,7 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
 
@@ -270,4 +274,224 @@ public class HbaseConnection {
             }
         }
     }
+
+    // 将商品转化率结果储存起来
+    public void StoreItemConversion(String filePath) {
+
+        String url = "jdbc:phoenix:node1:2181";
+
+        Connection connection = null;
+        PreparedStatement collectStmt = null;
+        PreparedStatement payStmt = null;
+        Statement stmt = null;
+
+        try {
+            // 1. 建立连接
+            Properties properties = new Properties();
+            connection = DriverManager.getConnection(url, properties);
+            stmt = connection.createStatement();
+
+            // 2. 创建两张表：收藏率 TOP10、支付转化率 TOP10
+            String createCollectSQL = "CREATE TABLE IF NOT EXISTS ItemCollectRateTop10 (" +
+                    "ItemId VARCHAR PRIMARY KEY, " +
+                    "ClickCount INTEGER, " +
+                    "CollectCount INTEGER, " +
+                    "CartCount INTEGER, " +
+                    "CollectRate DOUBLE)";
+            stmt.executeUpdate(createCollectSQL);
+
+            String createPaySQL = "CREATE TABLE IF NOT EXISTS ItemPayRateTop10 (" +
+                    "ItemId VARCHAR, " +
+                    "PayType VARCHAR, " +
+                    "ClickCount INTEGER, " +
+                    "PayCount INTEGER, " +
+                    "PayRate DOUBLE, " +
+                    "CONSTRAINT PK_ItemPay PRIMARY KEY (ItemId, PayType))";
+            stmt.executeUpdate(createPaySQL);
+
+            // 3. 清空旧数据，避免重复
+            stmt.executeUpdate("DELETE FROM ItemCollectRateTop10");
+            stmt.executeUpdate("DELETE FROM ItemPayRateTop10");
+
+            // 4. 从 MR 输出读取每个商品的统计
+            List<CollectRecord> collectRecords = new ArrayList<>();
+            List<PayRecord> payRecords = new ArrayList<>();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(Paths.get(filePath)), "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().isEmpty()) {
+                        continue;
+                    }
+
+                    String[] parts = line.split("\t");
+                    if (parts.length < 5) {
+                        continue;
+                    }
+
+                    String itemId = parts[0];
+
+                    int clickCount;
+                    int collectCount;
+                    int cartCount;
+                    int alipayCount;
+
+                    try {
+                        clickCount = Integer.parseInt(parts[1]);
+                        collectCount = Integer.parseInt(parts[2]);
+                        cartCount = Integer.parseInt(parts[3]);
+                        alipayCount = Integer.parseInt(parts[4]);
+                    } catch (NumberFormatException e) {
+                        continue;
+                    }
+
+                    if (clickCount <= 0) {
+                        // 没有点击，无法计算转化率
+                        continue;
+                    }
+
+                    double collectRate = collectCount / (double) clickCount;
+                    collectRecords.add(new CollectRecord(itemId, clickCount, collectCount, cartCount, collectRate));
+
+                    if (alipayCount > 0) {
+                        double payRate = alipayCount / (double) clickCount;
+                        payRecords.add(new PayRecord(itemId, "ALIPAY", clickCount, alipayCount, payRate));
+                    }
+                }
+            }
+
+            // 5. 排序并截取前 10
+            collectRecords.sort((a, b) -> {
+                int cmp = Double.compare(b.collectRate, a.collectRate);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                cmp = Integer.compare(b.collectCount, a.collectCount);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                cmp = Integer.compare(b.cartCount, a.cartCount);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                return a.itemId.compareTo(b.itemId);
+            });
+
+            payRecords.sort((a, b) -> {
+                int cmp = Double.compare(b.payRate, a.payRate);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                cmp = Integer.compare(b.payCount, a.payCount);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                return a.itemId.compareTo(b.itemId);
+            });
+
+            // 6. 插入 TOP10
+            String upsertCollect = "UPSERT INTO ItemCollectRateTop10 (ItemId, ClickCount, CollectCount, CartCount, CollectRate) VALUES (?, ?, ?, ?, ?)";
+            collectStmt = connection.prepareStatement(upsertCollect);
+
+            // 使用 collectRecords 记录前 i 个商品，循环录入
+            int collectLimit = Math.min(10, collectRecords.size());
+            for (int i = 0; i < collectLimit; i++) {
+                CollectRecord record = collectRecords.get(i);
+                collectStmt.setString(1, record.itemId);
+                collectStmt.setInt(2, record.clickCount);
+                collectStmt.setInt(3, record.collectCount);
+                collectStmt.setInt(4, record.cartCount);
+                collectStmt.setDouble(5, record.collectRate);
+                collectStmt.executeUpdate();
+            }
+
+            String upsertPay = "UPSERT INTO ItemPayRateTop10 (ItemId, PayType, ClickCount, PayCount, PayRate) VALUES (?, ?, ?, ?, ?)";
+            payStmt = connection.prepareStatement(upsertPay);
+
+            // 使用 payRecords 记录前 i 个商品，循环录入
+            int payLimit = Math.min(10, payRecords.size());
+            for (int i = 0; i < payLimit; i++) {
+                PayRecord record = payRecords.get(i);
+                payStmt.setString(1, record.itemId);
+                payStmt.setString(2, record.payType);
+                payStmt.setInt(3, record.clickCount);
+                payStmt.setInt(4, record.payCount);
+                payStmt.setDouble(5, record.payRate);
+                payStmt.executeUpdate();
+            }
+
+            // 7. 提交事务
+            connection.commit();
+
+            // 8. 打印结果
+            System.out.println("=== 商品收藏率 TOP10 ===");
+            for (int i = 0; i < collectLimit; i++) {
+                CollectRecord record = collectRecords.get(i);
+                System.out.printf(Locale.CHINA, "%d. 商品: %s 点击: %d 收藏: %d 加购: %d 收藏率: %.4f%n",
+                        i + 1, record.itemId, record.clickCount, record.collectCount, record.cartCount, record.collectRate);
+            }
+
+            System.out.println("=== 商品购买率 TOP10（按支付方式） ===");
+            for (int i = 0; i < payLimit; i++) {
+                PayRecord record = payRecords.get(i);
+                System.out.printf(Locale.CHINA, "%d. 商品: %s 支付方式: %s 点击: %d 购买: %d 购买率: %.4f%n",
+                        i + 1, record.itemId, record.payType, record.clickCount, record.payCount, record.payRate);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (collectStmt != null) collectStmt.close();
+            } catch (Exception ignored) {
+            }
+            try {
+                if (payStmt != null) payStmt.close();
+            } catch (Exception ignored) {
+            }
+            try {
+                if (stmt != null) stmt.close();
+            } catch (Exception ignored) {
+            }
+            try {
+                if (connection != null) connection.close();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    // 收藏率记录
+    private static class CollectRecord {
+        private final String itemId;
+        private final int clickCount;
+        private final int collectCount;
+        private final int cartCount;
+        private final double collectRate;
+
+        private CollectRecord(String itemId, int clickCount, int collectCount, int cartCount, double collectRate) {
+            this.itemId = itemId;
+            this.clickCount = clickCount;
+            this.collectCount = collectCount;
+            this.cartCount = cartCount;
+            this.collectRate = collectRate;
+        }
+    }
+
+    // 支付率记录
+    private static class PayRecord {
+        private final String itemId;
+        private final String payType;
+        private final int clickCount;
+        private final int payCount;
+        private final double payRate;
+
+        private PayRecord(String itemId, String payType, int clickCount, int payCount, double payRate) {
+            this.itemId = itemId;
+            this.payType = payType;
+            this.clickCount = clickCount;
+            this.payCount = payCount;
+            this.payRate = payRate;
+        }
+    }
 }
+

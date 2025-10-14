@@ -14,7 +14,7 @@ public class Driver {
         //================================= 参数检查 =============================================
         // 现在要求输入 <JobType> <input path> <output path>
         if (args.length != 3) {
-            System.err.println("Usage: Driver <JobType: ProductKeywordCount|ActionStatistics> <input path> <output path>");
+            System.err.println("Usage: Driver <JobType: ProductKeywordCount|ActionStatistics|UserDailyActivity|ItemConversion> <input path> <output path>");
             System.exit(-1);
         }
 
@@ -130,6 +130,45 @@ public class Driver {
                 System.out.println("用户日活统计成功！");
             } else {
                 System.out.println("用户日活统计失败！");
+            }
+        }
+
+        //==================================== ItemConversion ===============================================
+        else if ("ItemConversion".equalsIgnoreCase(jobType)) {
+            // 商品转化率统计，需要输入 <input path> <output path>
+            Configuration conf4 = new Configuration();
+            Job job4 = Job.getInstance(conf4, "Item Conversion Statistics");
+
+            job4.setJarByClass(Driver.class);
+
+            // 设置 Mapper、Reducer
+            job4.setMapperClass(ItemConversionMR.ItemConversionMapper.class);
+            job4.setReducerClass(ItemConversionMR.ItemConversionReducer.class);
+
+            // 设置 Map 输出 key/value 类型
+            job4.setMapOutputKeyClass(Text.class);
+            job4.setMapOutputValueClass(Text.class);
+
+            // 设置输出 key/value 类型
+            job4.setOutputKeyClass(Text.class);
+            job4.setOutputValueClass(Text.class);
+
+            // 输入输出路径
+            FileInputFormat.addInputPath(job4, new Path(inputPath));
+            FileOutputFormat.setOutputPath(job4, new Path(outputPath));
+
+            // 提交任务并等待完成
+            boolean completed4 = job4.waitForCompletion(true);
+
+            // 输出结果路径
+            String partFile4 = new File(outputPath, "part-r-00000").getPath();
+            hbaseConnection.StoreItemConversion(partFile4);
+
+            // 打印执行结果
+            if (completed4) {
+                System.out.println("商品转化率统计成功！");
+            } else {
+                System.out.println("商品转化率统计失败！");
             }
         }
 
