@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class ActionStatisticsMR {
 
-    // 行为记录的 Mapper，使用 \u0001 进行分割，输出 <行为, 1>
+// 行为记录的 Mapper，使用 \u0001 进行分割，输出 <行为, 1>
 // WordCountMapper 类继承自 Hadoop 的 Mapper 类
 // 泛型参数说明：输入键类型为 LongWritable（行偏移量）+ 输入值类型为 Text（一行文本）；输出键类型为 Text（单词），输出值类型为 IntWritable（单词出现次数）
     public static class ActionStatisticsMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
@@ -24,9 +24,6 @@ public class ActionStatisticsMR {
 
             // 按特殊分隔符 \u0001 切分
             String[] fields = line.split("\u0001");
-
-            // 打印该行用户的 action
-            System.out.println("action=" + fields[2]);
 
             // 确保有 3 列
             if (fields.length > 2) {

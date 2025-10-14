@@ -98,6 +98,40 @@ public class Driver {
             }
         }
 
+        //==================================== UserDailyActivity ===============================================
+        else if ("UserDailyActivity".equalsIgnoreCase(jobType)) {
+            // 用户日活统计，需要输入 <input path> <output path>
+            Configuration conf3 = new Configuration();
+            Job job3 = Job.getInstance(conf3, "User Daily Activity");
+
+            job3.setJarByClass(Driver.class);
+
+            // 设置 Mapper、Reducer
+            job3.setMapperClass(UserDailyActivityMR.UserDailyActivityMapper.class);
+            job3.setReducerClass(UserDailyActivityMR.UserDailyActivityReducer.class);
+
+            // 设置输出 key/value 类型
+            job3.setOutputKeyClass(Text.class);
+            job3.setOutputValueClass(IntWritable.class);
+
+            // 输入输出路径
+            FileInputFormat.addInputPath(job3, new Path(inputPath));
+            FileOutputFormat.setOutputPath(job3, new Path(outputPath));
+
+            // 提交任务并等待完成
+            boolean completed3 = job3.waitForCompletion(true);
+
+            // 输出结果路径
+            String partFile3 = new File(outputPath, "part-r-00000").getPath();
+            hbaseConnection.StoreUserDailyActivity(partFile3);
+
+            // 打印执行结果
+            if (completed3) {
+                System.out.println("用户日活统计成功！");
+            } else {
+                System.out.println("用户日活统计失败！");
+            }
+        }
 
         //==================================== 错误处理 ===============================================
         else {

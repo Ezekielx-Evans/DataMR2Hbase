@@ -25,9 +25,6 @@ public class ProductKeywordCountMR {
             // 按特殊分隔符 \u0001 切分
             String[] fields = line.split("\u0001");
 
-            // 打印该行商品的 title
-            System.out.println("title=" + fields[1]);
-
             // 确保有 2 列
             if (fields.length > 1) {
 
