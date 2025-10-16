@@ -40,6 +40,7 @@ public class HbaseConnection {
             }
             reader.close();
 
+            // 排序
             List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(map.entrySet());
             sortedList.sort((a, b) -> b.getValue().compareTo(a.getValue()));
 
