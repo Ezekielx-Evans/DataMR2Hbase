@@ -46,12 +46,16 @@ public class HbaseConnection {
             String upsertSQL = "UPSERT INTO ProductKeySortedCount (Product, Count) VALUES (?, ?)";
             pstmt = connection.prepareStatement(upsertSQL);
 
+            // 限制输出条数
             int limit = 100, count = 0;
             for (Map.Entry<String, Integer> entry : sortedList) {
                 if (count >= limit) break;
                 String product = entry.getKey();
+                // 只保留由字母、数字、中文组成的字符串，如果包含其他字符（比如标点），就跳过
                 if (!product.matches("[a-zA-Z0-9\\u4e00-\\u9fa5]+")) continue;
+                // 字符串长度小于 2 的跳过（避免单字或无意义字符）
                 if (product.length() < 2) continue;
+                // 如果是纯数字（一个或多个数字），跳过
                 if (product.matches("\\d+")) continue;
                 pstmt.setString(1, product);
                 pstmt.setInt(2, entry.getValue());
@@ -180,6 +184,8 @@ public class HbaseConnection {
 
             List<Map.Entry<String, Integer>> results = new ArrayList<>();
             int maxCount = 0;
+
+            // 读取数据同时找最值确定图比例
             while (rs.next()) {
                 String hour = rs.getString("Hour");
                 int count = rs.getInt("Count");
@@ -188,6 +194,7 @@ public class HbaseConnection {
             }
             rs.close();
 
+            // 打印柱状图
             for (Map.Entry<String, Integer> entry : results) {
                 int barLength = (int) ((entry.getValue() / (double) maxCount) * 50);
                 StringBuilder bar = new StringBuilder();
@@ -257,6 +264,7 @@ public class HbaseConnection {
                 }
                 if (clickCount <= 0) continue;
 
+                // 计算收藏率
                 double collectRate = collectCount / (double) clickCount;
                 collectRecords.add(new CollectRecord(itemId, clickCount, collectCount, cartCount, collectRate));
 
@@ -267,6 +275,7 @@ public class HbaseConnection {
             }
             reader.close();
 
+            // 计算支付率
             collectRecords.sort((a, b) -> Double.compare(b.collectRate, a.collectRate));
             payRecords.sort((a, b) -> Double.compare(b.payRate, a.payRate));
 
